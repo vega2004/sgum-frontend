@@ -1,0 +1,22 @@
+export const siNo = ['Sí', 'No'] as const;
+export const siNoDesconoce = ['Sí', 'No', 'Desconoce'] as const;
+export const estadosCaso = ['Activo', 'En seguimiento', 'Derivado', 'Cerrado', 'Inactivo'] as const;
+export const estadosCiviles = ['Soltera', 'Casada', 'Unión libre', 'Separada', 'Divorciada', 'Viuda', 'No especifica'] as const;
+export const escolaridades = ['Sin estudios', 'Primaria', 'Secundaria', 'Preparatoria', 'Universidad', 'Posgrado', 'Bachillerato o carrera técnica', 'Otro'] as const;
+export const viviendas = ['Propia', 'Prestada', 'Rentada', 'Es pareja'] as const;
+export const capacidades = ['No puede hacerlo', 'Lo hace con dificultad', 'Lo hace con poca dificultad', 'No tiene dificultad'] as const;
+export const accionesCapacidad = ['Caminar, subir o bajar', 'Ver, aunque use lentes', 'Mover o usar brazos o manos', 'Aprender, recordar o concentrarse', 'Escuchar, aunque sea con aparato auditivo', 'Bañarse, vestirse o comer', 'Hablar o comunicarse', 'Problemas emocionales o mentales'];
+export const actosCometidos = ['Insultos, humillaciones y amenazas', 'Le ha disparado con armas de fuego', 'Puñetazos', 'Patadas', 'Cachetadas', 'Fracturas', 'Jalones de pelo', 'Estrangulamiento y/o asfixia', 'Empujones', 'Mordidas', 'Agresiones sexuales', 'Privación económica', 'Retención en el hogar', 'Aislamiento familiar y social', 'Abandono', 'Otro'];
+export const caracteristicasRiesgo = ['Rompe o destruye objetos', 'Tira objetos personales', 'Porta armas de fuego, armas blancas u objetos punzocortantes', 'Problemas con la autoridad', 'Delitos graves, como robo u homicidio', 'Antecedentes de ejercicio de violencia', 'Adicciones', 'Amenazas de muerte, maltrato o daño a sus hijas o hijos', 'Intentos suicidas', 'Impulsivo', 'Celoso o posesivo', 'Conflictos o deserción en el área laboral', 'Otros'];
+export const riesgos = ['Leve', 'Moderado', 'Grave'] as const;
+export const tiposViolencia = ['Psicológica', 'Física', 'Económica', 'Sexual', 'Patrimonial', 'Obstétrica', 'Vicaria'];
+export const modalidadesViolencia = ['Familiar', 'Laboral', 'Docente o escolar', 'Institucional', 'Comunitaria', 'Feminicidio', 'Digital y mediática', 'Política'];
+export const efectosFisicos = ['Aborto', 'Amputaciones o mutilación', 'Cicatrices', 'Congelamiento', 'Contusión o hematoma', 'Dolor de cabeza', 'Fractura', 'Herida', 'Laceración o abrasión', 'Luxación o esguince', 'Muerte', 'Quemadura o corrosión', 'Ninguno', 'Otro'];
+export const efectosPsicologicos = ['Angustia o miedo', 'Depresión', 'Encopresis', 'Enuresis', 'Estrés postraumático', 'Ideación suicida', 'Intento suicida', 'Pérdida o aumento de apetito', 'Problemas nerviosos', 'Trastorno del sueño', 'Trastornos de ansiedad', 'Trastornos psiquiátricos', 'Tristeza o aflicción', 'Ninguno', 'Otro'];
+export const efectosEconomicos = ['Dejó de estudiar', 'Imposibilidad para trabajar o estudiar', 'No recibe gasto', 'No recibe pensión alimenticia', 'Perdió el empleo', 'Perdió propiedades o sufrió menoscabo en su patrimonio personal o familiar', 'Otro', 'Ninguno'];
+export const efectosSexuales = ['Ardor vaginal', 'Desgarre', 'Embarazo', 'Infección de transmisión sexual', 'Lesión anal', 'Lesión bucal', 'Lesión vaginal', 'Sangrado', 'Ninguno', 'Otro'];
+export const agentesLesion = ['Arma contundente', 'Arma de fuego', 'Arma punzocortante', 'Golpes', 'Ninguno', 'Otro', 'Parte del cuerpo', 'Quemaduras'];
+export const areasAnatomicas = ['Abdomen', 'Cabeza', 'Cara', 'Columna vertebral', 'Cuello', 'Espalda', 'Extremidades inferiores', 'Extremidades superiores', 'Glúteos', 'Manos', 'Ninguna', 'Pelvis', 'Pies', 'Región anal', 'Región bucal', 'Región genital', 'Región ocular', 'Senos', 'Tórax', 'Cero', 'Especifique'];
+export const solicitudesTrabajoSocial = ['Terapia psicológica', 'Contención', 'Asesoría jurídica', 'Penal', 'Familiar: pensión alimenticia, guarda y custodia o divorcio'];
+
+export const rotulosPendientesValidacion = ['Área anatómica: opción "Cero" requiere confirmación institucional por origen en documento escaneado.'];
