@@ -36,15 +36,25 @@ function getErrorMessage(data: unknown) {
   return payload.mensaje ?? payload.message ?? payload.title ?? formatErrors(payload.errors) ?? 'No fue posible completar la operación.';
 }
 
+function buildUrl(path: string) {
+  return `${env.apiBaseUrl}/${path.replace(/^\/+/, '')}`;
+}
+
 export async function apiClient<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${env.apiBaseUrl}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...options.headers,
-    },
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(buildUrl(path), {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new ApiError('No fue posible conectar con SGUM.Api. Verifica la conexión o la disponibilidad del backend.');
+  }
 
   if (response.status === 401) {
     setAccessToken(null);

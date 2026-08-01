@@ -77,10 +77,7 @@ VITE_USE_MOCKS=false
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
-Login real:
-
-- Usuario: `admin`
-- Password: `Admin123*`
+No documentar usuarios, contraseñas ni cuentas institucionales reales en este repositorio.
 
 Endpoints realmente integrados:
 
@@ -164,6 +161,10 @@ npm run lint
 npm test
 npm run build
 ```
+
+## Despliegue En Netlify
+
+Consultar `DEPLOY_NETLIFY.md` para publicar mediante despliegue continuo desde GitHub.
 
 ## Campos Pendientes De Validación Institucional
 

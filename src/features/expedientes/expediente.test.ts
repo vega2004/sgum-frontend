@@ -6,7 +6,7 @@ import { findPossibleDuplicates, searchExpedientes } from './expediente.service'
 
 const validForm = {
   ...defaultExpedienteForm,
-  comoSeEntero: 'Difusión', apellidoPaterno: 'Prueba', apellidoMaterno: 'Ficticia', nombres: 'Usuaria', estadoCivil: 'Soltera', sexo: 'Mujer', edad: 30, fechaNacimiento: '1996-01-01', municipioNacimiento: 'Tula', estadoNacimiento: 'Hidalgo', curp: 'PUFU960101MDFRRS08', telefono: '7731234567', calle: 'Ficticia', numeroExterior: '1', colonia: 'Centro', codigoPostal: '42800', dedicacion: 'Trabajo', ingresoMensual: 1, jornadaLaboral: 'Matutina', fuenteIngresos: 'Propia', escolaridad: 'Primaria', vivienda: 'Rentada', servicioMedico: 'Centro de salud', familiares: [{ nombre: 'Familiar ficticio', edad: 1, parentesco: 'Hija', ocupacion: '', escolaridad: '', enfermedad: '' }], redesApoyo: [{ tipoApoyo: 'Familiar', nombreCompleto: 'Apoyo ficticio', tipoRelacion: 'Hermana', telefono: '', direccionCompleta: '' }], tiposViolencia: ['Psicológica'], motivoAtencion: 'Orientación', solicitudes: ['Asesoría jurídica'], narracion: 'Narración ficticia suficiente para validar.', personaAtiende: 'Personal ficticio', confirmacionRevision: true,
+  comoSeEntero: 'Difusión', apellidoPaterno: 'Prueba', apellidoMaterno: 'Ficticia', nombres: 'Usuaria', estadoCivil: 'Soltera', sexo: 'Mujer', edad: 30, fechaNacimiento: '1996-01-01', municipioNacimiento: 'Tula', estadoNacimiento: 'Hidalgo', curp: 'PUFU960101MDFRRS08', telefono: '0000000002', calle: 'Ficticia', numeroExterior: '1', colonia: 'Centro', codigoPostal: '42800', dedicacion: 'Trabajo', ingresoMensual: 1, jornadaLaboral: 'Matutina', fuenteIngresos: 'Propia', escolaridad: 'Primaria', vivienda: 'Rentada', servicioMedico: 'Centro de salud', familiares: [{ nombre: 'Familiar ficticio', edad: 1, parentesco: 'Hija', ocupacion: '', escolaridad: '', enfermedad: '' }], redesApoyo: [{ tipoApoyo: 'Familiar', nombreCompleto: 'Apoyo ficticio', tipoRelacion: 'Hermana', telefono: '', direccionCompleta: '' }], tiposViolencia: ['Psicológica'], motivoAtencion: 'Orientación', solicitudes: ['Asesoría jurídica'], narracion: 'Narración ficticia suficiente para validar.', personaAtiende: 'Personal ficticio', confirmacionRevision: true,
 };
 
 describe('expedientes', () => {
@@ -27,7 +27,7 @@ describe('expedientes', () => {
   });
 
   it('detecta duplicados simulados', async () => {
-    const duplicates = await findPossibleDuplicates({ curp: 'LOPM920210MDFPRR05', folioBanavim: '', numeroExpediente: '', nombres: '', apellidoPaterno: '', apellidoMaterno: '' });
+    const duplicates = await findPossibleDuplicates({ curp: 'FICT920210MDFXXX00', folioBanavim: '', numeroExpediente: '', nombres: '', apellidoPaterno: '', apellidoMaterno: '' });
     expect(duplicates.length).toBeGreaterThan(0);
   });
 
