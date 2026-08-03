@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, DataTable, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge, Tabs } from '../../shared/components/Ui';
 import { SelectField, TextField } from '../../shared/components/FormControls';
+import { canDelete, canEdit, canReviewOrClose } from '../../shared/config/permissions';
 import { normalizeApiError } from '../../shared/lib/apiErrors';
 import { useNotification } from '../../shared/hooks/useNotification';
+import { useAuth } from '../auth/AuthProvider';
 import { closeSeguimiento, deleteSeguimiento, listSeguimientos, type SeguimientoFilters } from './seguimiento.service';
 import type { SeguimientoItem } from './seguimiento.types';
 
@@ -17,6 +19,7 @@ function badgeTone(periodo: string) {
 }
 
 export function SeguimientosPage() {
+  const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
   const [rows, setRows] = useState<SeguimientoItem[]>([]);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -98,7 +101,7 @@ export function SeguimientosPage() {
             { header: 'Periodo', render: (row) => <StatusBadge tone={badgeTone(row.vencimiento)}>{row.vencimiento}</StatusBadge> },
             { header: 'Próxima revisión', render: (row) => row.fechaProximaRevision ?? 'Sin fecha' },
             { header: 'Responsable', render: (row) => row.responsable },
-            { header: 'Acciones', render: (row) => <div className="table-actions"><Link className="button button-outline button-small" to={`/expedientes/${row.expedienteId}`}>Ver expediente</Link><Button type="button" variant="outline" onClick={() => void closeRow(row)} disabled={row.estado === 'Cerrado'}>Cerrar</Button><Button type="button" variant="danger" onClick={() => void deleteRow(row)}>Baja</Button></div> },
+            { header: 'Acciones', render: (row) => <div className="table-actions"><Link className="button button-outline button-small" to={`/expedientes/${row.expedienteId}`}>Ver expediente</Link>{canEdit(user, 'seguimientos') ? <Link className="button button-outline button-small" to={`/seguimientos/${row.id}/editar`}>Editar</Link> : null}{canReviewOrClose(user, 'seguimientos') ? <Button type="button" variant="outline" onClick={() => void closeRow(row)} disabled={row.estado === 'Cerrado'}>Cerrar</Button> : null}{canDelete(user, 'seguimientos') ? <Button type="button" variant="danger" onClick={() => void deleteRow(row)}>Baja</Button> : null}</div> },
           ]} />
         </section>
       ) : null}

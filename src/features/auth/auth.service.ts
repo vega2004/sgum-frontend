@@ -1,12 +1,18 @@
 import { env } from '../../shared/config/env';
+import { mockPermissionsByRole } from '../../shared/config/permissions';
 import { apiClient } from '../../shared/lib/apiClient';
-import type { BackendCurrentUserResponse, BackendLoginRequest, BackendLoginResponse, LoginInput, LoginResponse } from './auth.types';
+import type { Role } from '../../shared/config/roles';
+import type { AuthUser, BackendCurrentUserResponse, BackendLoginRequest, BackendLoginResponse, LoginInput, LoginResponse } from './auth.types';
 
 export const demoAccounts = [
-  { label: 'Administrador', username: 'admin.demo', password: 'Demo123!', user: { id: 'mock-admin', name: 'Responsable Administrativa', username: 'admin.demo', role: 'Administrador' } },
-  { label: 'Personal de Atención', username: 'atencion.demo', password: 'Demo123!', user: { id: 'mock-atencion', name: 'Personal de Atención', username: 'atencion.demo', role: 'PersonalAtencion' } },
-  { label: 'Coordinación', username: 'coordinacion.demo', password: 'Demo123!', user: { id: 'mock-coordinacion', name: 'Coordinación Autorizada', username: 'coordinacion.demo', role: 'ConsultaCoordinacion' } },
-] as const;
+  { label: 'Administrador', username: 'admin.demo', password: 'Demo123!', user: mockUser('mock-admin', 'Responsable Administrativa', 'admin.demo', 'Administrador') },
+  { label: 'Personal de Atención', username: 'atencion.demo', password: 'Demo123!', user: mockUser('mock-atencion', 'Personal de Atención', 'atencion.demo', 'PersonalAtencion') },
+  { label: 'Coordinación', username: 'coordinacion.demo', password: 'Demo123!', user: mockUser('mock-coordinacion', 'Coordinación Autorizada', 'coordinacion.demo', 'ConsultaCoordinacion') },
+];
+
+function mockUser(id: string, name: string, username: string, role: Role): AuthUser {
+  return { id, name, username, role, permisos: [...mockPermissionsByRole[role]] };
+}
 
 function delay(ms = 550) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -23,7 +29,7 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
         name: backend.nombreCompleto,
         username: backend.usuario,
         role: backend.rol,
-        permisos: backend.permisos,
+        permisos: backend.permisos ?? [],
       },
     };
   }

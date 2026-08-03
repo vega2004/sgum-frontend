@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasPermission } from '../../shared/config/roles';
+import { hasPermission } from '../../shared/config/permissions';
 import { expedienteSchema } from './expediente.schema';
 import { defaultExpedienteForm } from './expediente.mock';
 import { findPossibleDuplicates, searchExpedientes } from './expediente.service';
@@ -37,7 +37,7 @@ describe('expedientes', () => {
   });
 
   it('protege narración por permiso', () => {
-    expect(hasPermission('ConsultaCoordinacion', 'narracion:read')).toBe(false);
-    expect(hasPermission('PersonalAtencion', 'narracion:read')).toBe(true);
+    expect(hasPermission({ role: 'ConsultaCoordinacion', permisos: ['Usuarias.Leer'] }, 'Narracion.Leer')).toBe(false);
+    expect(hasPermission({ role: 'PersonalAtencion', permisos: ['Usuarias.Leer', 'Narracion.Leer'] }, 'Narracion.Leer')).toBe(true);
   });
 });

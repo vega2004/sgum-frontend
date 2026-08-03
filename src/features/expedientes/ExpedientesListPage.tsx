@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { Button, DataTable, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from '../../shared/components/Ui';
 import { TextField, SelectField } from '../../shared/components/FormControls';
-import { hasPermission } from '../../shared/config/roles';
+import { canCreate } from '../../shared/config/permissions';
 import { routes } from '../../shared/config/routes';
 import { formatDate, maskCurp, protectName } from '../../shared/lib/formatters';
 import { normalizeApiError } from '../../shared/lib/apiErrors';
@@ -34,7 +34,7 @@ export function ExpedientesListPage() {
 
   return (
     <section className="page">
-      <PageHeader title="Expedientes" description="Busque expedientes mediante los datos autorizados." action={hasPermission(user?.role, 'expedientes:write', user?.permisos) ? <Link className="button button-primary" to={routes.expedienteNuevo}>Registrar nueva usuaria</Link> : null} />
+      <PageHeader title="Expedientes" description="Busque expedientes mediante los datos autorizados." action={canCreate(user, 'expedientes') ? <Link className="button button-primary" to={routes.expedienteNuevo}>Registrar nueva usuaria</Link> : null} />
       <section className="content-card filters-card">
         <div className="card-heading"><div><h2>Criterios de búsqueda</h2><p>Complete uno o más campos para localizar un expediente.</p></div><Button type="button" variant="outline" className="filters-toggle" onClick={() => setFiltersOpen((current) => !current)}>{filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}</Button></div>
         <form className={`filters ${filtersOpen ? 'filters-open' : ''}`} onSubmit={(event) => { event.preventDefault(); void load(filters); }}>

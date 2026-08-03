@@ -1,14 +1,14 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, ChevronLeft, ChevronRight, ClipboardList, FileSearch, LayoutDashboard, ShieldCheck, Users } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, ClipboardList, FileSearch, LayoutDashboard, ShieldCheck, Stethoscope, Users } from 'lucide-react';
 import { menuItems } from '../config/routes';
-import { hasPermission } from '../config/roles';
+import { canViewModule } from '../config/permissions';
 import { useAuth } from '../../features/auth/AuthProvider';
 
-const icons = [LayoutDashboard, FileSearch, ClipboardList, BarChart3, Users, ShieldCheck];
+const icons = [LayoutDashboard, FileSearch, Stethoscope, ClipboardList, BarChart3, Users, ShieldCheck];
 
 export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: { collapsed: boolean; onToggleCollapsed: () => void; onNavigate: () => void }) {
   const { user } = useAuth();
-  const items = menuItems.filter((item) => hasPermission(user?.role, item.permission, user?.permisos));
+  const items = menuItems.filter((item) => canViewModule(user, item.module));
   return (
     <aside className="sidebar" aria-label="Navegación principal">
       <div className="brand">
