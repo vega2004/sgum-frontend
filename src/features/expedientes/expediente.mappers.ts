@@ -45,10 +45,6 @@ export type UsuariaResponse = Partial<UsuariaCreateDto> & {
   fechaAtencion?: string;
   ultimaAtencion?: string;
   estado?: string;
-<<<<<<< HEAD
-};
-
-=======
   activa?: boolean;
 };
 
@@ -63,7 +59,6 @@ export type NarracionRevisionDto = { narracionHechos?: string | null; personaQue
 export type ExpedienteCompletoUpdateDto = { domicilio?: DomicilioDto | null; familiares?: FamiliarDto[] | null; perfilSalud?: PerfilSaludDto | null; redesApoyo?: RedApoyoDto[] | null; personaGeneradoraViolencia?: PersonaGeneradoraViolenciaDto | null; hechosViolencia?: HechosViolenciaDto | null; trabajoSocial?: TrabajoSocialDto | null; narracionRevision?: NarracionRevisionDto | null };
 export type ExpedienteCompletoResponseDto = ExpedienteCompletoUpdateDto & { usuaria?: UsuariaResponse | null };
 
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
 function emptyToNull(value: string | undefined) {
   return value?.trim() ? value.trim() : null;
 }
@@ -76,8 +71,6 @@ function toText(value: unknown) {
   return typeof value === 'string' ? value : '';
 }
 
-<<<<<<< HEAD
-=======
 function toDateInput(value: unknown) {
   const text = toText(value);
   return text ? text.slice(0, 10) : '';
@@ -106,7 +99,6 @@ function parseCapabilities(value: unknown) {
   }
 }
 
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
 function toNumberOrEmpty(value: unknown): number | '' {
   return typeof value === 'number' ? value : '';
 }
@@ -127,8 +119,6 @@ export function mapBackendBoolToSiNo(value: boolean | null | undefined): 'Sí' |
   return value ? 'Sí' : 'No';
 }
 
-<<<<<<< HEAD
-=======
 function mapBoolToSiNoDesconoce(value: boolean | null | undefined): 'Sí' | 'No' | 'No sabe' {
   if (value === null || value === undefined) return 'No sabe';
   return value ? 'Sí' : 'No';
@@ -142,7 +132,6 @@ function mapTextToBool(value: string | undefined) {
   return null;
 }
 
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
 function mapGrupoEtnico(value: 'Sí' | 'No' | 'Desconoce') {
   if (value === 'Desconoce') return null;
   return value === 'Sí';
@@ -256,8 +245,6 @@ export function mapUsuariaResponseToExpediente(input: UsuariaResponse): Expedien
     historial: detalle.fechaAtencion ? [{ fecha: detalle.fechaAtencion, evento: 'Registro de usuaria', responsable: 'Backend SGUM.Api' }] : [],
   };
 }
-<<<<<<< HEAD
-=======
 
 export function mapExpedienteFormToExpedienteCompletoUpdateDto(input: ExpedienteForm): ExpedienteCompletoUpdateDto {
   return {
@@ -403,4 +390,3 @@ export function mergeExpedienteCompleto(base: UsuariaResponse, completo?: Expedi
   };
   return { ...expediente, detalle };
 }
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)

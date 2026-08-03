@@ -1,10 +1,6 @@
 import { env } from '../../shared/config/env';
 import { apiClient } from '../../shared/lib/apiClient';
-<<<<<<< HEAD
-import type { BackendLoginRequest, BackendLoginResponse, LoginInput, LoginResponse } from './auth.types';
-=======
 import type { BackendCurrentUserResponse, BackendLoginRequest, BackendLoginResponse, LoginInput, LoginResponse } from './auth.types';
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
 
 export const demoAccounts = [
   { label: 'Administrador', username: 'admin.demo', password: 'Demo123!', user: { id: 'mock-admin', name: 'Responsable Administrativa', username: 'admin.demo', role: 'Administrador' } },
@@ -43,8 +39,6 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
     user: account.user,
   };
 }
-<<<<<<< HEAD
-=======
 
 export async function getCurrentUser() {
   const backend = await apiClient<BackendCurrentUserResponse>('/api/auth/me');
@@ -56,4 +50,3 @@ export async function getCurrentUser() {
     permisos: backend.permisos ?? [],
   };
 }
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)

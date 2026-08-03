@@ -15,8 +15,6 @@ import { defaultExpedienteForm, emptyFamily, emptySupport } from './expediente.m
 import { PossibleDuplicateAlert } from './components/PossibleDuplicateAlert';
 
 const steps = ['Identificación', 'Datos personales', 'Domicilio y familia', 'Perfil y salud', 'Persona generadora', 'Hechos y violencia', 'Trabajo social', 'Narración y revisión'];
-<<<<<<< HEAD
-=======
 const fieldLabels: Record<string, string> = {
   calle: 'Calle',
   numeroExterior: 'Número exterior',
@@ -31,7 +29,6 @@ const fieldLabels: Record<string, string> = {
   efectosEconomicos: 'Efectos económicos',
   efectosSexuales: 'Efectos sexuales',
 };
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
 
 export function ExpedienteFormPage() {
   const navigate = useNavigate();
@@ -123,11 +120,7 @@ export function ExpedienteFormPage() {
         </FormSection> : null}
 
         {step === 2 ? <FormSection title="Domicilio y estructura familiar">
-<<<<<<< HEAD
-          {(['calle', 'numeroExterior', 'numeroInterior', 'colonia', 'codigoPostal', 'municipio', 'estado', 'pais'] as const).map((name) => <TextField key={name} label={name} {...form.register(name)} error={form.formState.errors[name]} />)}
-=======
           {(['calle', 'numeroExterior', 'numeroInterior', 'colonia', 'codigoPostal', 'municipio', 'estado', 'pais'] as const).map((name) => <TextField key={name} label={fieldLabels[name]} {...form.register(name)} error={form.formState.errors[name]} />)}
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
           <div className="field-wide dynamic-list"><h3>Estructura familiar</h3>{family.fields.map((field, index) => <div className="dynamic-row" key={field.id}><TextField label="Nombre" {...form.register(`familiares.${index}.nombre`)} /><TextField label="Edad" type="number" min="0" {...form.register(`familiares.${index}.edad`)} /><TextField label="Parentesco" {...form.register(`familiares.${index}.parentesco`)} /><TextField label="Ocupación" {...form.register(`familiares.${index}.ocupacion`)} /><TextField label="Escolaridad" {...form.register(`familiares.${index}.escolaridad`)} /><TextField label="Enfermedad" {...form.register(`familiares.${index}.enfermedad`)} /><Button type="button" className="button-ghost" onClick={() => removeFamily(index)}>Eliminar fila</Button></div>)}<Button type="button" className="button-secondary" onClick={() => family.append(emptyFamily)}>Agregar integrante</Button></div>
         </FormSection> : null}
 
@@ -156,11 +149,7 @@ export function ExpedienteFormPage() {
           <SelectField label="¿Alguna autoridad conoce el asunto?" {...form.register('autoridadConoce')}>{siNo.map((item) => <option key={item}>{item}</option>)}</SelectField>{values.autoridadConoce === 'Sí' ? <TextField label="¿Cuál autoridad?" {...form.register('autoridadCual')} error={form.formState.errors.autoridadCual} /> : null}<TextField label="¿Denunció?" {...form.register('denuncio')} />
           <Controller control={form.control} name="tiposViolencia" render={({ field }) => <CheckboxGroup legend="Tipo de violencia" options={tiposViolencia} value={field.value} onChange={field.onChange} error={form.formState.errors.tiposViolencia?.message} />} />
           <Controller control={form.control} name="modalidadesViolencia" render={({ field }) => <CheckboxGroup legend="Modalidad de violencia" options={modalidadesViolencia} value={field.value} onChange={field.onChange} />} />
-<<<<<<< HEAD
-          {(['efectosFisicos', 'efectosPsicologicos', 'efectosEconomicos', 'efectosSexuales'] as const).map((name) => <Controller key={name} control={form.control} name={name} render={({ field }) => <CheckboxGroup legend={name} options={{ efectosFisicos, efectosPsicologicos, efectosEconomicos, efectosSexuales }[name]} value={field.value} onChange={(next) => field.onChange(next.includes('Ninguno') && !field.value.includes('Ninguno') ? ['Ninguno'] : next.filter((item) => item !== 'Ninguno'))} />} />)}
-=======
           {(['efectosFisicos', 'efectosPsicologicos', 'efectosEconomicos', 'efectosSexuales'] as const).map((name) => <Controller key={name} control={form.control} name={name} render={({ field }) => <CheckboxGroup legend={fieldLabels[name]} options={{ efectosFisicos, efectosPsicologicos, efectosEconomicos, efectosSexuales }[name]} value={field.value} onChange={field.onChange} />} />)}
->>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
           <SelectField label="Agente de lesión" {...form.register('agenteLesion')}>{agentesLesion.map((item) => <option key={item}>{item}</option>)}</SelectField><SelectField label="Área anatómica lesionada" {...form.register('areaAnatomica')}>{areasAnatomicas.map((item) => <option key={item}>{item}</option>)}</SelectField>
         </FormSection> : null}
 
