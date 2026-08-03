@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, DataTable, EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge, Tabs } from '../../shared/components/Ui';
 import { SelectField, TextField } from '../../shared/components/FormControls';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { closeSeguimiento, deleteSeguimiento, listSeguimientos, type SeguimientoFilters } from './seguimiento.service';
 import type { SeguimientoItem } from './seguimiento.types';
 
@@ -15,6 +17,7 @@ function badgeTone(periodo: string) {
 }
 
 export function SeguimientosPage() {
+  const { showSuccess, showError } = useNotification();
   const [rows, setRows] = useState<SeguimientoItem[]>([]);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [tab, setTab] = useState<TabValue>('Próximo');
@@ -34,7 +37,9 @@ export function SeguimientosPage() {
       setStatus('loading');
       setRows(await listSeguimientos(serviceFilters));
       setStatus('success');
-    } catch {
+    } catch (error) {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible cargar seguimientos.', description: friendly.description });
       setStatus('error');
     }
   }
@@ -42,14 +47,26 @@ export function SeguimientosPage() {
   useEffect(() => { void load(); }, []);
 
   async function closeRow(row: SeguimientoItem) {
-    await closeSeguimiento(row.id);
-    await load();
+    try {
+      await closeSeguimiento(row.id);
+      showSuccess({ title: 'Seguimiento cerrado correctamente.' });
+      await load();
+    } catch (error) {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible guardar el seguimiento.', description: friendly.description });
+    }
   }
 
   async function deleteRow(row: SeguimientoItem) {
     if (!window.confirm('El seguimiento será dado de baja. ¿Continuar?')) return;
-    await deleteSeguimiento(row.id);
-    await load();
+    try {
+      await deleteSeguimiento(row.id);
+      showSuccess({ title: 'Seguimiento dado de baja correctamente.' });
+      await load();
+    } catch (error) {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible guardar el seguimiento.', description: friendly.description });
+    }
   }
 
   const tabs: Array<{ value: TabValue; label: string; count: number }> = ['Próximo', 'Vencido', 'Sin fecha', 'Cerrado', 'Todos'].map((value) => ({ value: value as TabValue, label: value === 'Próximo' ? 'Próximos' : value === 'Todos' ? 'Todos' : value, count: value === 'Todos' ? rows.length : rows.filter((row) => row.vencimiento === value).length }));

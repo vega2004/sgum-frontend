@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Button, DataTable, EmptyState, ErrorState, LoadingState } from '../../shared/components/Ui';
 import { SelectField, TextField } from '../../shared/components/FormControls';
-import { useToast } from '../../shared/components/ToastProvider';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { modalidadesViolencia, tiposViolencia } from '../expedientes/expediente.catalogs';
 import { getReporteResumen, getReporteSeguimientos, getReporteUsuarias, type ReporteFilters, type ReporteRow } from './reporte.service';
 
 type ReporteTipo = 'resumen' | 'usuarias' | 'seguimientos';
 
 export function ReportesPage() {
-  const { showToast } = useToast();
+  const { showInfo, showError } = useNotification();
   const [tipo, setTipo] = useState<ReporteTipo>('resumen');
   const [filters, setFilters] = useState<ReporteFilters>({});
   const [rows, setRows] = useState<ReporteRow[]>([]);
@@ -21,7 +22,9 @@ export function ReportesPage() {
       const service = tipo === 'usuarias' ? getReporteUsuarias : tipo === 'seguimientos' ? getReporteSeguimientos : getReporteResumen;
       setRows(await service(filters));
       setStatus('success');
-    } catch {
+    } catch (error) {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible generar la consulta del reporte.', description: friendly.description });
       setStatus('error');
     }
   }
@@ -39,12 +42,12 @@ export function ReportesPage() {
         <TextField label="Estado de seguimiento" value={filters.estadoSeguimiento ?? ''} onChange={(e) => setFilters({ ...filters, estadoSeguimiento: e.target.value })} />
         <TextField label="Tipo de atención" value={filters.tipoAtencion ?? ''} onChange={(e) => setFilters({ ...filters, tipoAtencion: e.target.value })} />
         <Button type="submit">Buscar</Button>
-        <Button type="button" variant="secondary" onClick={() => showToast('Exportación pendiente de integración.', 'info')}>Exportar PDF</Button>
-        <Button type="button" variant="secondary" onClick={() => showToast('Exportación pendiente de integración.', 'info')}>Exportar Excel</Button>
+        <Button type="button" variant="secondary" onClick={() => showInfo({ title: 'La exportación PDF/Excel está pendiente de integración.', description: 'Puedes consultar la información en pantalla.' })}>Exportar PDF</Button>
+        <Button type="button" variant="secondary" onClick={() => showInfo({ title: 'La exportación PDF/Excel está pendiente de integración.', description: 'Puedes consultar la información en pantalla.' })}>Exportar Excel</Button>
       </form>
       {status === 'loading' ? <LoadingState /> : null}
-      {status === 'error' ? <ErrorState message="No fue posible generar la vista previa del reporte." /> : null}
-      {status === 'success' && !rows.length ? <EmptyState message="No hay datos agregados para los filtros." /> : null}
+      {status === 'error' ? <ErrorState message="No fue posible generar la consulta del reporte." /> : null}
+      {status === 'success' && !rows.length ? <EmptyState message="No hay información para los filtros seleccionados." /> : null}
       {status === 'success' && rows.length ? <DataTable caption="Reporte" rows={rows} getKey={(row) => `${row.concepto}-${row.periodo}`} columns={[{ header: 'Concepto', render: (row) => row.concepto }, { header: 'Total', render: (row) => row.total }, { header: 'Periodo', render: (row) => row.periodo }]} /> : null}
     </section>
   );

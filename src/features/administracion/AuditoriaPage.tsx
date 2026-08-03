@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Button, DataTable, ErrorState, LoadingState } from '../../shared/components/Ui';
+import { Button, DataTable, EmptyState, ErrorState, LoadingState } from '../../shared/components/Ui';
 import { TextField } from '../../shared/components/FormControls';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { listAudit, type AuditFilters, type AuditRow } from './administracion.service';
 
 export function AuditoriaPage() {
+  const { showError } = useNotification();
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [filters, setFilters] = useState<AuditFilters>({ pageNumber: 1, pageSize: 100 });
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -13,7 +16,9 @@ export function AuditoriaPage() {
       setStatus('loading');
       setRows(await listAudit(filters));
       setStatus('success');
-    } catch {
+    } catch (error) {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible consultar la auditoría.', description: friendly.description });
       setStatus('error');
     }
   }
@@ -33,8 +38,9 @@ export function AuditoriaPage() {
         <Button type="submit">Buscar</Button>
       </form>
       {status === 'loading' ? <LoadingState /> : null}
-      {status === 'error' ? <ErrorState message="No fue posible cargar auditoría." onRetry={() => void load()} /> : null}
-      {status === 'success' ? <DataTable caption="Auditoría" rows={rows} getKey={(row) => row.id} columns={[{ header: 'Usuario', render: (row) => row.usuario }, { header: 'Acción', render: (row) => row.accion }, { header: 'Entidad', render: (row) => row.entidad }, { header: 'Entidad ID', render: (row) => row.entidadId }, { header: 'Descripción', render: (row) => row.descripcion }, { header: 'Fecha', render: (row) => row.fecha }, { header: 'IP', render: (row) => row.ip }, { header: 'User agent', render: (row) => row.userAgent }]} /> : null}
+      {status === 'error' ? <ErrorState message="No fue posible consultar la auditoría." onRetry={() => void load()} /> : null}
+      {status === 'success' && rows.length === 0 ? <EmptyState message="No hay movimientos de auditoría con los filtros seleccionados." /> : null}
+      {status === 'success' && rows.length > 0 ? <DataTable caption="Auditoría" rows={rows} getKey={(row) => row.id} columns={[{ header: 'Usuario', render: (row) => row.usuario }, { header: 'Acción', render: (row) => row.accion }, { header: 'Entidad', render: (row) => row.entidad }, { header: 'Entidad ID', render: (row) => row.entidadId }, { header: 'Descripción', render: (row) => row.descripcion }, { header: 'Fecha', render: (row) => row.fecha }, { header: 'IP', render: (row) => row.ip }, { header: 'User agent', render: (row) => row.userAgent }]} /> : null}
     </section>
   );
 }

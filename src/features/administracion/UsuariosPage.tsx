@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button, DataTable, ErrorState, LoadingState, StatusBadge } from '../../shared/components/Ui';
 import { PasswordField, SelectField, TextField } from '../../shared/components/FormControls';
 import { roleLabels, type Role } from '../../shared/config/roles';
-import { useToast } from '../../shared/components/ToastProvider';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { activateUser, changeUserPassword, deactivateUser, listRoles, listUsers, saveUser, unlockUser, type AdminRole, type AdminUser } from './administracion.service';
 
 function roleName(role: string) {
@@ -10,7 +11,7 @@ function roleName(role: string) {
 }
 
 export function UsuariosPage() {
-  const { showToast } = useToast();
+  const { showSuccess, showError } = useNotification();
   const [rows, setRows] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -37,25 +38,28 @@ export function UsuariosPage() {
       const saved = await saveUser(form);
       setRows((current) => [saved, ...current]);
       setForm({ nombre: '', usuario: '', passwordTemporal: '', rolSistemaId: roles[0]?.id ?? 1 });
-      showToast('Usuario guardado correctamente.', 'success');
+      showSuccess({ title: 'Usuario registrado correctamente.' });
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'No fue posible guardar el usuario.', 'error');
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible completar la operación del usuario.', description: friendly.description });
     }
   }
 
-  async function updateRow(action: () => Promise<AdminUser>) {
+  async function updateRow(action: () => Promise<AdminUser>, successTitle: string) {
     try {
       const saved = await action();
       setRows((current) => current.map((item) => item.id === saved.id ? saved : item));
+      showSuccess({ title: successTitle });
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'No fue posible actualizar el usuario.', 'error');
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible completar la operación del usuario.', description: friendly.description });
     }
   }
 
   async function changePassword(row: AdminUser) {
     const nuevaPassword = window.prompt(`Nueva contraseña temporal para ${row.usuario}`);
     if (!nuevaPassword) return;
-    await updateRow(() => changeUserPassword(row.id, nuevaPassword));
+    await updateRow(() => changeUserPassword(row.id, nuevaPassword), 'Contraseña actualizada correctamente.');
   }
 
   if (status === 'loading') return <LoadingState />;
@@ -76,7 +80,7 @@ export function UsuariosPage() {
         { header: 'Usuario', render: (row) => row.usuario },
         { header: 'Rol', render: (row) => roleName(String(row.rol)) },
         { header: 'Estado', render: (row) => <StatusBadge tone={row.activo ? 'success' : 'warning'}>{row.activo ? 'Activo' : 'Inactivo'}{row.bloqueado ? ' / Bloqueado' : ''}</StatusBadge> },
-        { header: 'Acciones', render: (row) => <div className="table-actions"><Button type="button" variant="outline" onClick={() => void updateRow(() => row.activo ? deactivateUser(row.id) : activateUser(row.id))}>{row.activo ? 'Desactivar' : 'Activar'}</Button><Button type="button" variant="outline" disabled={!row.bloqueado} onClick={() => void updateRow(() => unlockUser(row.id))}>Desbloquear</Button><Button type="button" variant="ghost" onClick={() => void changePassword(row)}>Cambiar contraseña</Button></div> },
+        { header: 'Acciones', render: (row) => <div className="table-actions"><Button type="button" variant="outline" onClick={() => void updateRow(() => row.activo ? deactivateUser(row.id) : activateUser(row.id), row.activo ? 'Usuario desactivado correctamente.' : 'Usuario activado correctamente.')}>{row.activo ? 'Desactivar' : 'Activar'}</Button><Button type="button" variant="outline" disabled={!row.bloqueado} onClick={() => void updateRow(() => unlockUser(row.id), 'Usuario desbloqueado correctamente.')}>Desbloquear</Button><Button type="button" variant="ghost" onClick={() => void changePassword(row)}>Cambiar contraseña</Button></div> },
       ]} />
     </section>
   );

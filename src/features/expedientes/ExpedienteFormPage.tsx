@@ -1,13 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Controller, useFieldArray, useForm, useWatch, type Resolver } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch, type FieldErrors, type Resolver } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckboxGroup, FormSection, SelectField, TextAreaField, TextField } from '../../shared/components/FormControls';
 import { Button, Modal } from '../../shared/components/Ui';
 import { env } from '../../shared/config/env';
 import { routes } from '../../shared/config/routes';
-import { useToast } from '../../shared/components/ToastProvider';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
 import { getDraftInfo, loadDraft, removeDraft, saveDraft, type DraftInfo } from '../../shared/lib/draftStorage';
+import { userMessages } from '../../shared/lib/userMessages';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { useAuth } from '../auth/AuthProvider';
 import { accionesCapacidad, actosCometidos, agentesLesion, areasAnatomicas, capacidades, caracteristicasRiesgo, efectosEconomicos, efectosFisicos, efectosPsicologicos, efectosSexuales, escolaridades, estadosCiviles, modalidadesViolencia, riesgos, siNo, solicitudesTrabajoSocial, tiposViolencia, viviendas } from './expediente.catalogs';
 import { expedienteSchema } from './expediente.schema';
@@ -18,6 +20,16 @@ import { PossibleDuplicateAlert } from './components/PossibleDuplicateAlert';
 
 const steps = ['Identificación', 'Datos personales', 'Domicilio y familia', 'Perfil y salud', 'Persona generadora', 'Hechos y violencia', 'Trabajo social', 'Narración y revisión'];
 type ExpedienteDraft = { values: ExpedienteForm; step: number };
+const stepFields: Array<Array<keyof ExpedienteForm>> = [
+  ['folioBanavim', 'numeroExpediente', 'comoSeEntero', 'fechaAtencion', 'indigena', 'migrante', 'reingreso', 'violenciaUltimos12Meses'],
+  ['apellidoPaterno', 'apellidoMaterno', 'nombres', 'estadoCivil', 'sexo', 'edad', 'fechaNacimiento', 'municipioNacimiento', 'estadoNacimiento', 'paisNacimiento', 'nacionalidad', 'religion', 'curp', 'telefono', 'grupoEtnico', 'hablaLenguaIndigena', 'lenguaIndigenaCual', 'hablaLenguaExtranjera', 'lenguaExtranjeraCual', 'hijas', 'hijos'],
+  ['calle', 'numeroExterior', 'numeroInterior', 'colonia', 'codigoPostal', 'municipio', 'estado', 'pais', 'familiares'],
+  ['dedicacion', 'ingresoMensual', 'jornadaLaboral', 'fuenteIngresos', 'jefaFamilia', 'escolaridad', 'vivienda', 'servicioMedico', 'embarazo', 'enfermedad', 'enfermedadCual', 'medicamentos', 'medicamentosCual', 'drogas', 'drogasCual', 'capacidades', 'redesApoyo', 'mediaFiliacion'],
+  ['conoceGenerador', 'generadorNombre', 'generadorRelacion', 'generadorRiesgo', 'actosCometidos', 'caracteristicasRiesgo', 'notasGenerador'],
+  ['fechaAgresion', 'horaAgresion', 'lugarAgresion', 'municipioAgresion', 'estadoAgresion', 'vecesAgresion', 'diaFestivo', 'diaFestivoCual', 'autoridadConoce', 'autoridadCual', 'denuncio', 'tiposViolencia', 'modalidadesViolencia', 'efectosFisicos', 'efectosPsicologicos', 'efectosEconomicos', 'efectosSexuales', 'agenteLesion', 'areaAnatomica'],
+  ['motivoAtencion', 'recibioInformacion', 'materiaInformacion', 'solicitudes'],
+  ['narracion', 'personaAtiende', 'observacionesAutorizadas', 'firmaFisica', 'confirmacionRevision'],
+];
 const fieldLabels: Record<string, string> = {
   calle: 'Calle',
   numeroExterior: 'Número exterior',
@@ -36,7 +48,7 @@ const fieldLabels: Record<string, string> = {
 export function ExpedienteFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { showToast } = useToast();
+  const { showSuccess, showError, showWarning } = useNotification();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [duplicates, setDuplicates] = useState<ExpedienteListItem[]>([]);
@@ -45,6 +57,8 @@ export function ExpedienteFormPage() {
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftError, setDraftError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [partialUsuariaId, setPartialUsuariaId] = useState<string | null>(null);
   const autosaveTimer = useRef<number | null>(null);
   const form = useForm<ExpedienteForm>({ resolver: zodResolver(expedienteSchema) as unknown as Resolver<ExpedienteForm>, defaultValues: defaultExpedienteForm, mode: 'onBlur' });
   const family = useFieldArray({ control: form.control, name: 'familiares' });
@@ -85,8 +99,11 @@ export function ExpedienteFormPage() {
 
   useEffect(() => {
     if (!id) return;
-    void getExpediente(id).then((expediente) => form.reset(expediente.detalle)).catch(() => showToast('No fue posible cargar el expediente para edición.', 'error'));
-  }, [form, id, showToast]);
+    void getExpediente(id).then((expediente) => form.reset(expediente.detalle)).catch((error) => {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible cargar el expediente para edición.', description: friendly.description });
+    });
+  }, [form, id, showError]);
 
   useEffect(() => {
     if (!form.formState.isDirty || form.formState.isSubmitting) return;
@@ -102,14 +119,14 @@ export function ExpedienteFormPage() {
     if (!draft) {
       setShowDraftPrompt(false);
       setDraftInfo(null);
-      showToast('El borrador ya no está disponible.', 'error');
+      showError({ title: 'El borrador ya no está disponible.' });
       return;
     }
     form.reset(draft.values);
     setStep(Math.min(Math.max(draft.step ?? 0, 0), steps.length - 1));
     setShowDraftPrompt(false);
     setDraftInfo(null);
-    showToast('Borrador recuperado correctamente.', 'success');
+    showSuccess({ title: 'Borrador recuperado correctamente.' });
   }
 
   function discardDraft() {
@@ -118,7 +135,7 @@ export function ExpedienteFormPage() {
     setDraftInfo(null);
     setDraftSavedAt(null);
     setDraftError(false);
-    showToast('Borrador descartado.', 'success');
+    showSuccess({ title: 'Borrador descartado.' });
   }
 
   function confirmDiscardDraft() {
@@ -150,20 +167,36 @@ export function ExpedienteFormPage() {
 
   async function submit(values: ExpedienteForm) {
     if (!confirmSave) { setConfirmSave(true); return; }
+    if (isSaving) return;
+    setConfirmSave(false);
+    setIsSaving(true);
     try {
-      const saved = id ? await updateExpediente(id, values) : await createExpediente(values);
+      const targetId = id ?? partialUsuariaId;
+      const saved = targetId ? await updateExpediente(targetId, values) : await createExpediente(values);
       removeDraft(draftKey);
-      showToast(env.useMocks ? 'Expediente guardado en modo demostración.' : 'Expediente guardado correctamente.', 'success');
+      if (env.useMocks || id || partialUsuariaId) showSuccess(id || partialUsuariaId ? userMessages.expedienteUpdated : userMessages.expedienteSaved);
+      else showSuccess(userMessages.expedienteSaved);
       navigate(`/expedientes/${saved.id || id}`);
     } catch (error) {
       writeDraft();
-      setConfirmSave(false);
       if (error instanceof ExpedienteCompletoSaveError) {
-        showToast('La usuaria fue creada, pero ocurrió un error al guardar la información complementaria. El borrador se conserva temporalmente.', 'error');
+        setPartialUsuariaId(error.usuariaId);
+        showWarning(userMessages.expedientePartial);
         return;
       }
-      showToast('No se pudo guardar en el servidor. El borrador se conserva temporalmente en este equipo.', 'error');
+      const friendly = normalizeApiError(error);
+      if (friendly.status === 401) showError({ title: friendly.title, description: 'Por seguridad, inicia sesión nuevamente. El borrador se conserva temporalmente.' });
+      else showError(userMessages.expedienteSaveFailed);
+    } finally {
+      setIsSaving(false);
     }
+  }
+
+  function onInvalid(errors: FieldErrors<ExpedienteForm>) {
+    const errorKeys = Object.keys(errors) as Array<keyof ExpedienteForm>;
+    const firstStepWithErrors = stepFields.findIndex((fields) => fields.some((field) => errorKeys.includes(field)));
+    if (firstStepWithErrors >= 0) setStep(firstStepWithErrors);
+    showError(userMessages.requiredFields);
   }
 
   const draftTime = draftSavedAt ? new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit' }).format(new Date(draftSavedAt)) : null;
@@ -174,9 +207,9 @@ export function ExpedienteFormPage() {
       <div className="page-header"><div><h1>{isEditing ? 'Edición de usuaria' : 'Registro de nueva usuaria'}</h1><p>Asistente por pasos basado en la cédula institucional. El guardado ocurre al finalizar.</p></div></div>
       {env.useMocks ? <p className="mock-note">Modo demostración: todos los datos capturados permanecen solo en memoria de esta sesión del navegador.</p> : null}
       <div className="draft-status"><span>{draftError ? 'No fue posible guardar borrador local.' : draftTime ? `Borrador guardado automáticamente a las ${draftTime}` : 'El borrador se guardará automáticamente al capturar información.'}</span><Button type="button" variant="outline" onClick={confirmDiscardDraft}>Descartar borrador</Button></div>
-      <div className="stepper" aria-label="Progreso del formulario">{steps.map((label, index) => <button type="button" key={label} className={index === step ? 'active' : ''} onClick={() => goToStep(index)}>{index + 1}. {label}</button>)}</div>
+      <div className="stepper" aria-label="Progreso del formulario">{steps.map((label, index) => <button type="button" key={label} className={index === step ? 'active' : ''} disabled={isSaving} onClick={() => goToStep(index)}>{index + 1}. {label}</button>)}</div>
       <PossibleDuplicateAlert duplicates={duplicates} />
-      <form onSubmit={form.handleSubmit(submit)} noValidate autoComplete="off">
+      <form onSubmit={form.handleSubmit(submit, onInvalid)} noValidate autoComplete="off">
         {step === 0 ? <FormSection title="Identificación de la atención" description="Captura los datos administrativos disponibles sin hacer obligatorios folio o expediente.">
           <TextField label="Folio BANAVIM" {...form.register('folioBanavim')} error={form.formState.errors.folioBanavim} />
           <TextField label="Número de expediente" {...form.register('numeroExpediente')} error={form.formState.errors.numeroExpediente} />
@@ -257,10 +290,10 @@ export function ExpedienteFormPage() {
           <div className="review-box field-wide"><h3>Resumen</h3><p>Usuaria: {values.nombres || 'Pendiente'} {values.apellidoPaterno || ''}</p><p>Expediente: {values.numeroExpediente || 'Se asignará según backend'}</p><p>Tipos de violencia seleccionados: {values.tiposViolencia?.length ?? 0}</p><p>Campos pendientes se indican junto a cada campo al intentar guardar.</p><p className="confidentiality">Este sistema contiene información confidencial. Su consulta y uso están restringidos al personal autorizado de la Instancia Municipal para el Desarrollo de la Mujer.</p><p className="confidentiality">El borrador se guarda temporalmente en este navegador para evitar pérdida de captura. Elimine el borrador si utiliza un equipo compartido.</p></div>
         </FormSection> : null}
 
-        <div className="form-actions"><Button type="button" className="button-ghost" onClick={() => form.formState.isDirty && !window.confirm('Hay cambios sin guardar. El borrador temporal se conservará en este equipo. ¿Deseas cancelar?') ? undefined : navigate(routes.expedientes)}>Cancelar</Button><Button type="button" className="button-secondary" disabled={step === 0} onClick={() => goToStep(Math.max(0, step - 1))}>Anterior</Button>{step < steps.length - 1 ? <Button type="button" onClick={() => goToStep(Math.min(steps.length - 1, step + 1))}>Continuar</Button> : <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Guardando...' : 'Guardar'}</Button>}</div>
+        <div className="form-actions"><Button type="button" className="button-ghost" disabled={isSaving} onClick={() => form.formState.isDirty && !window.confirm('Hay cambios sin guardar. El borrador temporal se conservará en este equipo. ¿Deseas cancelar?') ? undefined : navigate(routes.expedientes)}>Cancelar</Button><Button type="button" className="button-secondary" disabled={step === 0 || isSaving} onClick={() => goToStep(Math.max(0, step - 1))}>Anterior</Button>{step < steps.length - 1 ? <Button type="button" disabled={isSaving} onClick={() => goToStep(Math.min(steps.length - 1, step + 1))}>Continuar</Button> : <Button type="submit" disabled={form.formState.isSubmitting || isSaving}>{form.formState.isSubmitting || isSaving ? 'Guardando...' : 'Guardar'}</Button>}</div>
       </form>
       {showDraftPrompt ? <Modal title="Borrador encontrado" onClose={() => setShowDraftPrompt(false)}><p>Se encontró un borrador sin guardar del expediente. Última actualización: {draftUpdatedAt}. ¿Deseas recuperarlo?</p><div className="form-actions"><Button type="button" variant="outline" onClick={discardDraft}>Descartar borrador</Button><Button type="button" onClick={recoverDraft}>Recuperar borrador</Button></div></Modal> : null}
-      {confirmSave ? <Modal title="Confirmar guardado" onClose={() => setConfirmSave(false)}><p>Se guardará el expediente con información confidencial. Verifica que la captura fue revisada y autorizada.</p><div className="form-actions"><Button type="button" className="button-ghost" onClick={() => setConfirmSave(false)}>Volver a revisar</Button><Button type="button" onClick={() => void form.handleSubmit(submit)()}>Confirmar y guardar</Button></div></Modal> : null}
+      {confirmSave ? <Modal title="Confirmar guardado" onClose={() => setConfirmSave(false)}><p>Se guardará información confidencial del expediente. Verifica que la captura fue revisada y autorizada.</p><div className="form-actions"><Button type="button" className="button-ghost" disabled={isSaving} onClick={() => setConfirmSave(false)}>Volver a revisar</Button><Button type="button" loading={isSaving} onClick={() => void form.handleSubmit(submit, onInvalid)()}>Confirmar y guardar</Button></div></Modal> : null}
     </section>
   );
 }

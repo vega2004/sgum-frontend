@@ -147,10 +147,15 @@ th { color: var(--color-primary); background: #faf7fb; }
 .modal-backdrop { position: fixed; inset: 0; background: #1e1122aa; display: grid; place-items: center; padding: 1rem; z-index: 20; }
 .modal { background: #fff; border-radius: 20px; padding: 1.2rem; width: min(560px, 100%); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.toast-region { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap: .5rem; z-index: 30; }
-.toast { padding: .85rem 1rem; border-radius: 14px; color: #fff; background: var(--color-primary); box-shadow: 0 10px 28px #21182744; }
-.toast-error { background: var(--color-error); }
-.toast-success { background: var(--color-secondary); }
+.notification-region, .toast-region { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap: .65rem; z-index: 30; width: min(420px, calc(100vw - 2rem)); }
+.notification-toast, .toast { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: .95rem 1rem; border-radius: 16px; color: var(--color-text); background: #fff; border: 1px solid var(--color-border); box-shadow: 0 12px 32px #21182730; }
+.notification-toast strong { color: var(--color-primary); }
+.notification-toast p { margin: .25rem 0 0; color: var(--color-text-secondary); }
+.notification-toast button { border: 0; background: transparent; color: var(--color-primary); font-size: 1.25rem; line-height: 1; cursor: pointer; }
+.notification-success, .toast-success { border-left: 5px solid var(--color-success); background: #edf8f2; }
+.notification-error, .toast-error { border-left: 5px solid var(--color-error); background: #fff0f2; }
+.notification-warning { border-left: 5px solid var(--color-warning); background: #fff6e8; }
+.notification-info, .toast-info { border-left: 5px solid var(--color-secondary); background: var(--color-secondary-soft); }
 .total-box { font-weight: 900; color: var(--color-primary); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 @media (max-width: 1180px) { .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .filters, .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

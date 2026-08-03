@@ -8,6 +8,7 @@ import { Button, Alert } from '../../shared/components/Ui';
 import { PasswordField, TextField } from '../../shared/components/FormControls';
 import { env } from '../../shared/config/env';
 import { routes } from '../../shared/config/routes';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
 import { useAuth } from './AuthProvider';
 import type { LoginInput } from './auth.types';
 import { demoAccounts } from './auth.service';
@@ -32,7 +33,12 @@ export function LoginPage() {
     try {
       await login(values);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No fue posible iniciar sesión.');
+      if (env.useMocks && err instanceof Error) {
+        setError(err.message);
+        return;
+      }
+      const friendly = normalizeApiError(err);
+      setError(`${friendly.title} ${friendly.description}`);
     }
   }
 

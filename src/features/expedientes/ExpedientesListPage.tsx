@@ -6,6 +6,8 @@ import { TextField, SelectField } from '../../shared/components/FormControls';
 import { hasPermission } from '../../shared/config/roles';
 import { routes } from '../../shared/config/routes';
 import { formatDate, maskCurp, protectName } from '../../shared/lib/formatters';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { useAuth } from '../auth/AuthProvider';
 import { estadosCaso } from './expediente.catalogs';
 import { searchExpedientes } from './expediente.service';
@@ -13,6 +15,7 @@ import type { ExpedienteFilters, ExpedienteListItem } from './expediente.types';
 
 export function ExpedientesListPage() {
   const { user } = useAuth();
+  const { showError } = useNotification();
   const [filters, setFilters] = useState<ExpedienteFilters>({});
   const [rows, setRows] = useState<ExpedienteListItem[]>([]);
   const [status, setStatus] = useState<'initial' | 'loading' | 'success' | 'error'>('initial');
@@ -20,8 +23,8 @@ export function ExpedientesListPage() {
 
   const load = useCallback(async (nextFilters: ExpedienteFilters = {}) => {
     setStatus('loading');
-    try { setRows(await searchExpedientes(nextFilters)); setStatus('success'); } catch { setStatus('error'); }
-  }, []);
+    try { setRows(await searchExpedientes(nextFilters)); setStatus('success'); } catch (error) { const friendly = normalizeApiError(error); showError({ title: 'No fue posible consultar expedientes.', description: friendly.description }); setStatus('error'); }
+  }, [showError]);
 
   useEffect(() => { setStatus('initial'); }, []);
 

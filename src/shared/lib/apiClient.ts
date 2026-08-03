@@ -54,14 +54,19 @@ function getErrorMessage(data: unknown) {
 
 export async function apiClient<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
-  const response = await fetch(`${env.apiBaseUrl}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${env.apiBaseUrl}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor.', 0);
+  }
 
   if (response.status === 401) {
     setAccessToken(null);

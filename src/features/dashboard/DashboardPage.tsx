@@ -5,11 +5,14 @@ import { Alert, ErrorState, LoadingState, PageHeader, StatCard } from '../../sha
 import { env } from '../../shared/config/env';
 import { hasPermission } from '../../shared/config/roles';
 import { routes } from '../../shared/config/routes';
+import { normalizeApiError } from '../../shared/lib/apiErrors';
+import { useNotification } from '../../shared/hooks/useNotification';
 import { useAuth } from '../auth/AuthProvider';
 import { getDashboardSummary, type DashboardSummary } from './dashboard.service';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { showError } = useNotification();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
@@ -18,7 +21,10 @@ export function DashboardPage() {
       setStatus('loading');
       setSummary(await getDashboardSummary());
       setStatus('success');
-    } catch {
+    } catch (error) {
+      const friendly = normalizeApiError(error);
+      showError({ title: 'No fue posible cargar las métricas del panel.', description: friendly.description });
+      setSummary({ expedientesActivos: 0, seguimientosPendientes: 0, seguimientosProximos: 0, casosDerivados: 0, atencionesPeriodo: 0 });
       setStatus('error');
     }
   }
@@ -37,7 +43,7 @@ export function DashboardPage() {
       <PageHeader title="Panel principal" description="Resumen general de la operación institucional." />
       {env.useMocks ? <Alert>Modo demostración activo. La información mostrada es ficticia.</Alert> : null}
       {status === 'loading' ? <LoadingState /> : null}
-      {status === 'error' ? <ErrorState message="No fue posible cargar el resumen del panel." onRetry={() => void load()} /> : null}
+      {status === 'error' ? <ErrorState message="No fue posible cargar las métricas del panel." onRetry={() => void load()} /> : null}
       {status === 'success' && !summary ? <Alert tone="warning">No hay datos disponibles para el resumen.</Alert> : null}
       <div className="metric-grid">{cards.map((card) => <StatCard key={card.label} {...card} />)}</div>
       <section className="content-card">
