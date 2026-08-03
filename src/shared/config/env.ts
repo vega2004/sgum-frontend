@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+<<<<<<< HEAD
 const isDevelopment = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
 const localApiBaseUrl = ['http://', 'local', 'host:8080'].join('');
@@ -56,5 +57,23 @@ const apiBaseUrl = parsed.data.VITE_API_BASE_URL?.trim().replace(/\/$/, '') ?? '
 
 export const env = {
   apiBaseUrl,
+=======
+const envSchema = z.object({
+  VITE_API_BASE_URL: z.string().url('VITE_API_BASE_URL debe ser una URL válida'),
+  VITE_USE_MOCKS: z.enum(['true', 'false']).default('true'),
+});
+
+const parsed = envSchema.safeParse({
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+  VITE_USE_MOCKS: import.meta.env.VITE_USE_MOCKS ?? 'true',
+});
+
+if (!parsed.success) {
+  throw new Error('Variables de entorno incompletas o inválidas para SGUM. Revisa .env.example.');
+}
+
+export const env = {
+  apiBaseUrl: parsed.data.VITE_API_BASE_URL,
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
   useMocks: parsed.data.VITE_USE_MOCKS === 'true',
 };

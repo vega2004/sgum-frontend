@@ -44,11 +44,11 @@ npm run dev
 Crear `.env` local a partir de `.env.example` si se requiere cambiar valores.
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080
-VITE_USE_MOCKS=true
+VITE_USE_MOCKS=false
+VITE_API_BASE_URL=https://sgum-backend.onrender.com
 ```
 
-Si el backend corre con Docker usar `http://localhost:8080`. Si corre local sin Docker, ajustar `VITE_API_BASE_URL` al puerto correspondiente de `SGUM.Api`.
+Para demo local sin backend usar `VITE_USE_MOCKS=true`. Si el backend corre localmente, ajustar `VITE_API_BASE_URL` al puerto correspondiente de `SGUM.Api`.
 
 No se debe versionar `.env` con datos privados.
 
@@ -74,12 +74,15 @@ Para conectar con `SGUM.Api`:
 
 ```bash
 VITE_USE_MOCKS=false
-VITE_API_BASE_URL=http://localhost:8080
+VITE_API_BASE_URL=https://sgum-backend.onrender.com
 ```
 
-No documentar usuarios, contraseñas ni cuentas institucionales reales en este repositorio.
+Login real:
 
-Endpoints realmente integrados:
+- Usuario: `admin`
+- Password: `Admin123*`
+
+Endpoints integrados por el frontend:
 
 - `POST /api/auth/login`
 - `GET /api/auth/me`
@@ -88,8 +91,37 @@ Endpoints realmente integrados:
 - `POST /api/usuarias`
 - `PUT /api/usuarias/{id}`
 - `DELETE /api/usuarias/{id}`
+- `GET /api/usuarias/{usuariaId}/expediente-completo`
+- `PUT /api/usuarias/{usuariaId}/expediente-completo`
+- `GET /api/reportes/resumen`
+- `GET /api/reportes/usuarias`
+- `GET /api/reportes/seguimientos`
+- `GET /api/atenciones`
+- `GET /api/atenciones/{id}`
+- `POST /api/atenciones`
+- `PUT /api/atenciones/{id}`
+- `DELETE /api/atenciones/{id}`
+- `GET /api/seguimientos`
+- `GET /api/seguimientos/{id}`
+- `POST /api/seguimientos`
+- `PUT /api/seguimientos/{id}`
+- `DELETE /api/seguimientos/{id}`
+- `PATCH /api/seguimientos/{id}/cerrar`
+- `GET /api/usuarios`
+- `GET /api/usuarios/{id}`
+- `POST /api/usuarios`
+- `PUT /api/usuarios/{id}`
+- `DELETE /api/usuarios/{id}`
+- `PATCH /api/usuarios/{id}/activar`
+- `PATCH /api/usuarios/{id}/desactivar`
+- `PATCH /api/usuarios/{id}/desbloquear`
+- `PATCH /api/usuarios/{id}/cambiar-password`
+- `GET /api/roles`
+- `GET /api/auditorias`
 
-Módulos pendientes de backend real, conservados en demo temporal:
+Los botones de exportación PDF/Excel no llaman endpoints backend inexistentes. Actualmente muestran exportación pendiente de integración.
+
+Módulos con integración JSON real y mocks conservados para demo:
 
 - Atenciones
 - Seguimientos
@@ -145,7 +177,7 @@ Los mocks usan datos ficticios identificados como demostración. No usar datos p
 
 ## Seguridad Y Confidencialidad
 
-- El token se mantiene en memoria.
+- El token se mantiene en memoria y se persiste en `sessionStorage` para recuperar sesión con `/api/auth/me` al recargar.
 - No se guardan expedientes, narraciones, CURP, teléfonos ni domicilios en `localStorage`.
 - No se imprimen objetos de usuarias en consola.
 - CURP y teléfono se enmascaran en listados generales.
@@ -161,10 +193,6 @@ npm run lint
 npm test
 npm run build
 ```
-
-## Despliegue En Netlify
-
-Consultar `DEPLOY_NETLIFY.md` para publicar mediante despliegue continuo desde GitHub.
 
 ## Campos Pendientes De Validación Institucional
 

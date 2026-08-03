@@ -17,7 +17,11 @@ export const defaultExpedienteForm: ExpedienteForm = {
 const demoForm: ExpedienteForm = {
   ...defaultExpedienteForm,
   folioBanavim: 'BAN-FICT-001', numeroExpediente: 'EXP-FICT-001', comoSeEntero: 'Difusión institucional', fechaAtencion: '2026-07-15',
+<<<<<<< HEAD
   apellidoPaterno: 'Demo', apellidoMaterno: 'Uno', nombres: 'Usuaria Ficticia', estadoCivil: 'Soltera', sexo: 'Mujer', edad: 34, fechaNacimiento: '1992-02-10', municipioNacimiento: 'Tula de Allende', estadoNacimiento: 'Hidalgo', curp: 'FICT920210MDFXXX00', telefono: '0000000000', hijas: 1, hijos: 0,
+=======
+  apellidoPaterno: 'López', apellidoMaterno: 'Pérez', nombres: 'María Elena', estadoCivil: 'Soltera', sexo: 'Mujer', edad: 34, fechaNacimiento: '1992-02-10', municipioNacimiento: 'Tula de Allende', estadoNacimiento: 'Hidalgo', curp: 'LOPM920210MDFPRR05', telefono: '7731234567', hijas: 1, hijos: 0,
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
   calle: 'Calle ficticia', numeroExterior: '12', colonia: 'Colonia demostración', codigoPostal: '42800', dedicacion: 'Comercio', ingresoMensual: 6000, jornadaLaboral: 'Matutina', fuenteIngresos: 'Trabajo propio', jefaFamilia: 'Sí', escolaridad: 'Secundaria', vivienda: 'Rentada', servicioMedico: 'Centro de salud',
   familiares: [{ nombre: 'Integrante ficticio', edad: 8, parentesco: 'Hija', ocupacion: 'Estudiante', escolaridad: 'Primaria', enfermedad: 'Ninguna registrada' }],
   redesApoyo: [{ tipoApoyo: 'Familiar', nombreCompleto: 'Contacto ficticio', tipoRelacion: 'Hermana', telefono: '7730000000', direccionCompleta: 'Dirección ficticia' }],
@@ -28,14 +32,22 @@ const demoForm: ExpedienteForm = {
 
 let expedientes: Expediente[] = [
   {
+<<<<<<< HEAD
     id: 'exp-1', numeroExpediente: 'EXP-FICT-001', folioBanavim: 'BAN-FICT-001', nombreCompleto: 'Usuaria Ficticia Demo Uno', curp: 'FICT920210MDFXXX00', telefono: '0000000000', ultimaAtencion: '2026-07-15', estado: 'En seguimiento', detalle: demoForm,
+=======
+    id: 'exp-1', numeroExpediente: 'EXP-FICT-001', folioBanavim: 'BAN-FICT-001', nombreCompleto: 'María Elena López Pérez', curp: 'LOPM920210MDFPRR05', telefono: '7731234567', ultimaAtencion: '2026-07-15', estado: 'En seguimiento', detalle: demoForm,
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
     historial: [
       { fecha: '2026-07-15', evento: 'Registro inicial de expediente', responsable: 'Personal de Atención' },
       { fecha: '2026-07-20', evento: 'Seguimiento programado', responsable: 'Personal de Atención' },
     ],
   },
   {
+<<<<<<< HEAD
     id: 'exp-2', numeroExpediente: 'EXP-FICT-002', folioBanavim: 'BAN-FICT-002', nombreCompleto: 'Usuaria Ficticia Demo Dos', curp: 'DEMO900101MDFXXX01', telefono: '0000000001', ultimaAtencion: '2026-07-08', estado: 'Activo', detalle: { ...demoForm, numeroExpediente: 'EXP-FICT-002', folioBanavim: 'BAN-FICT-002', nombres: 'Usuaria Ficticia', apellidoPaterno: 'Demo', apellidoMaterno: 'Dos', curp: 'DEMO900101MDFXXX01', telefono: '0000000001' }, historial: [{ fecha: '2026-07-08', evento: 'Consulta autorizada', responsable: 'Coordinación' }],
+=======
+    id: 'exp-2', numeroExpediente: 'EXP-FICT-002', folioBanavim: 'BAN-FICT-002', nombreCompleto: 'Ana Ficticia Martínez Ruiz', curp: 'MARA900101MDFRRN09', telefono: '7737654321', ultimaAtencion: '2026-07-08', estado: 'Activo', detalle: { ...demoForm, numeroExpediente: 'EXP-FICT-002', folioBanavim: 'BAN-FICT-002', nombres: 'Ana Ficticia', apellidoPaterno: 'Martínez', apellidoMaterno: 'Ruiz', curp: 'MARA900101MDFRRN09' }, historial: [{ fecha: '2026-07-08', evento: 'Consulta autorizada', responsable: 'Coordinación' }],
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
   },
 ];
 

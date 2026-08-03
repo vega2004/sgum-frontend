@@ -91,6 +91,21 @@ export function CheckboxGroup({
   onChange: (value: string[]) => void;
   error?: string;
 }) {
+<<<<<<< HEAD
+=======
+  function toggle(option: string, checked: boolean) {
+    if (checked) {
+      onChange(value.filter((item) => item !== option));
+      return;
+    }
+    if (option === 'Ninguno') {
+      onChange(['Ninguno']);
+      return;
+    }
+    onChange([...value.filter((item) => item !== 'Ninguno'), option]);
+  }
+
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
   return (
     <fieldset className="field field-wide checkbox-group">
       <legend>{legend}</legend>
@@ -101,7 +116,11 @@ export function CheckboxGroup({
             <input
               type="checkbox"
               checked={checked}
+<<<<<<< HEAD
               onChange={() => onChange(checked ? value.filter((item) => item !== option) : [...value, option])}
+=======
+              onChange={() => toggle(option, checked)}
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
             />
             <span>{option}</span>
           </label>

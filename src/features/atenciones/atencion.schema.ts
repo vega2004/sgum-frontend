@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { notFutureDate } from '../../shared/lib/validators';
 
 export const atencionSchema = z.object({
-  expedienteId: z.string().min(1),
-  fecha: notFutureDate,
+  usuariaId: z.string().min(1),
+  fechaAtencion: notFutureDate,
+  tipoAtencion: z.string().min(1, 'Captura el tipo de atención'),
+  areaAtencion: z.string().min(1, 'Captura el área de atención'),
+  responsable: z.string().min(1, 'Captura la persona responsable'),
   motivo: z.string().min(1, 'Captura el motivo'),
-  servicioOtorgado: z.string().min(1, 'Captura el servicio otorgado'),
-  acciones: z.string().min(1, 'Captura las acciones realizadas'),
   observaciones: z.string().optional().default(''),
-  datosHechos: z.string().optional().default(''),
+  resultado: z.string().min(1, 'Captura el resultado'),
   confirmar: z.boolean().refine((value) => value, 'Confirma antes de guardar'),
 });

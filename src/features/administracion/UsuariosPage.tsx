@@ -1,15 +1,83 @@
 import { useEffect, useState } from 'react';
-import { Button, DataTable, StatusBadge } from '../../shared/components/Ui';
-import { SelectField, TextField } from '../../shared/components/FormControls';
-import { roleLabels, roles, type Role } from '../../shared/config/roles';
+import { Button, DataTable, ErrorState, LoadingState, StatusBadge } from '../../shared/components/Ui';
+import { PasswordField, SelectField, TextField } from '../../shared/components/FormControls';
+import { roleLabels, type Role } from '../../shared/config/roles';
 import { useToast } from '../../shared/components/ToastProvider';
-import { listUsers, saveUser, type AdminUser } from './administracion.service';
+import { activateUser, changeUserPassword, deactivateUser, listRoles, listUsers, saveUser, unlockUser, type AdminRole, type AdminUser } from './administracion.service';
+
+function roleName(role: string) {
+  return roleLabels[role as Role] ?? role;
+}
 
 export function UsuariosPage() {
   const { showToast } = useToast();
-  const [rows, setRows] = useState<AdminUser[]>([]); const [form, setForm] = useState<Omit<AdminUser, 'id'>>({ nombre: '', usuario: '', rol: 'PersonalAtencion', activo: true });
-  useEffect(() => { void listUsers().then(setRows); }, []);
-  async function submit(event: React.FormEvent) { event.preventDefault(); try { const saved = await saveUser(form); setRows((current) => [saved, ...current]); setForm({ nombre: '', usuario: '', rol: 'PersonalAtencion', activo: true }); } catch (error) { showToast(error instanceof Error ? error.message : 'No fue posible guardar el usuario.', 'error'); } }
-  async function disable(user: AdminUser) { if (!window.confirm('La cuenta será deshabilitada, no eliminada físicamente. ¿Continuar?')) return; try { const saved = await saveUser({ ...user, activo: false }); setRows((current) => current.map((item) => item.id === saved.id ? saved : item)); } catch (error) { showToast(error instanceof Error ? error.message : 'No fue posible deshabilitar el usuario.', 'error'); } }
-  return <section className="page"><div className="page-header"><h1>Administración de usuarios</h1><p>No se muestran ni precargan contraseñas.</p></div><form className="filters" onSubmit={submit}><TextField label="Nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} required /><TextField label="Usuario" value={form.usuario} onChange={(e) => setForm({ ...form, usuario: e.target.value })} required /><SelectField label="Rol" value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value as Role })}>{roles.map((role) => <option value={role} key={role}>{roleLabels[role]}</option>)}</SelectField><Button type="submit">Guardar usuario</Button></form><DataTable caption="Usuarios" rows={rows} getKey={(row) => row.id} columns={[{ header: 'Nombre', render: (row) => row.nombre }, { header: 'Usuario', render: (row) => row.usuario }, { header: 'Rol', render: (row) => roleLabels[row.rol] }, { header: 'Estado', render: (row) => <StatusBadge>{row.activo ? 'Activo' : 'Inactivo'}</StatusBadge> }, { header: 'Acciones', render: (row) => <Button type="button" className="button-ghost" disabled={!row.activo} onClick={() => void disable(row)}>Deshabilitar</Button> }]} /></section>;
+  const [rows, setRows] = useState<AdminUser[]>([]);
+  const [roles, setRoles] = useState<AdminRole[]>([]);
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [form, setForm] = useState({ nombre: '', usuario: '', passwordTemporal: '', rolSistemaId: 1 });
+
+  async function load() {
+    try {
+      setStatus('loading');
+      const [nextRoles, nextUsers] = await Promise.all([listRoles(), listUsers()]);
+      setRoles(nextRoles);
+      setRows(nextUsers);
+      setForm((current) => ({ ...current, rolSistemaId: nextRoles[0]?.id ?? current.rolSistemaId }));
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      const saved = await saveUser(form);
+      setRows((current) => [saved, ...current]);
+      setForm({ nombre: '', usuario: '', passwordTemporal: '', rolSistemaId: roles[0]?.id ?? 1 });
+      showToast('Usuario guardado correctamente.', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No fue posible guardar el usuario.', 'error');
+    }
+  }
+
+  async function updateRow(action: () => Promise<AdminUser>) {
+    try {
+      const saved = await action();
+      setRows((current) => current.map((item) => item.id === saved.id ? saved : item));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No fue posible actualizar el usuario.', 'error');
+    }
+  }
+
+  async function changePassword(row: AdminUser) {
+    const nuevaPassword = window.prompt(`Nueva contraseña temporal para ${row.usuario}`);
+    if (!nuevaPassword) return;
+    await updateRow(() => changeUserPassword(row.id, nuevaPassword));
+  }
+
+  if (status === 'loading') return <LoadingState />;
+  if (status === 'error') return <ErrorState message="No fue posible cargar usuarios." onRetry={() => void load()} />;
+
+  return (
+    <section className="page">
+      <div className="page-header"><h1>Administración de usuarios</h1><p>No se muestran ni precargan contraseñas.</p></div>
+      <form className="filters" onSubmit={submit}>
+        <TextField label="Nombre completo" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} required />
+        <TextField label="Usuario" value={form.usuario} onChange={(e) => setForm({ ...form, usuario: e.target.value })} required />
+        <PasswordField label="Contraseña temporal" value={form.passwordTemporal} onChange={(e) => setForm({ ...form, passwordTemporal: e.target.value })} autoComplete="new-password" required />
+        <SelectField label="Rol" value={form.rolSistemaId} onChange={(e) => setForm({ ...form, rolSistemaId: Number(e.target.value) })}>{roles.map((role) => <option value={role.id} key={role.id}>{roleName(role.nombre)}</option>)}</SelectField>
+        <Button type="submit">Guardar usuario</Button>
+      </form>
+      <DataTable caption="Usuarios" rows={rows} getKey={(row) => row.id} columns={[
+        { header: 'Nombre', render: (row) => row.nombre },
+        { header: 'Usuario', render: (row) => row.usuario },
+        { header: 'Rol', render: (row) => roleName(String(row.rol)) },
+        { header: 'Estado', render: (row) => <StatusBadge tone={row.activo ? 'success' : 'warning'}>{row.activo ? 'Activo' : 'Inactivo'}{row.bloqueado ? ' / Bloqueado' : ''}</StatusBadge> },
+        { header: 'Acciones', render: (row) => <div className="table-actions"><Button type="button" variant="outline" onClick={() => void updateRow(() => row.activo ? deactivateUser(row.id) : activateUser(row.id))}>{row.activo ? 'Desactivar' : 'Activar'}</Button><Button type="button" variant="outline" disabled={!row.bloqueado} onClick={() => void updateRow(() => unlockUser(row.id))}>Desbloquear</Button><Button type="button" variant="ghost" onClick={() => void changePassword(row)}>Cambiar contraseña</Button></div> },
+      ]} />
+    </section>
+  );
 }

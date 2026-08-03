@@ -32,3 +32,14 @@ export type BackendLoginResponse = {
   rol: Role;
   permisos: string[];
 };
+<<<<<<< HEAD
+=======
+
+export type BackendCurrentUserResponse = {
+  usuarioId: number;
+  nombreCompleto: string;
+  usuario: string;
+  rol: Role;
+  permisos?: string[];
+};
+>>>>>>> 9ec0819 (Conectar frontend con procesos backend reales)
