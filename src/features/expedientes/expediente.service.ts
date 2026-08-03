@@ -6,6 +6,12 @@ import { mapExpedienteFormToExpedienteCompletoUpdateDto, mapExpedienteFormToUsua
 
 type PagedResponse<T> = T[] | { data?: T[]; items?: T[]; results?: T[] };
 
+export class ExpedienteCompletoSaveError extends Error {
+  constructor(public readonly usuariaId: string) {
+    super('La usuaria fue creada, pero ocurrió un error al guardar la información complementaria.');
+  }
+}
+
 function toQuery(filters: ExpedienteFilters) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -47,7 +53,12 @@ export async function createExpediente(input: ExpedienteForm): Promise<Expedient
   const response = await apiClient<UsuariaResponse>('/api/usuarias', { method: 'POST', body: JSON.stringify(mapExpedienteFormToUsuariaCreateDto(input)) });
   const id = String(response.id ?? response.usuariaId ?? response.usuarioId ?? '');
   if (!id) return mapUsuariaResponseToExpediente(response);
-  const completo = await apiClient<ExpedienteCompletoResponseDto>(`/api/usuarias/${id}/expediente-completo`, { method: 'PUT', body: JSON.stringify(mapExpedienteFormToExpedienteCompletoUpdateDto(input)) });
+  let completo: ExpedienteCompletoResponseDto;
+  try {
+    completo = await apiClient<ExpedienteCompletoResponseDto>(`/api/usuarias/${id}/expediente-completo`, { method: 'PUT', body: JSON.stringify(mapExpedienteFormToExpedienteCompletoUpdateDto(input)) });
+  } catch {
+    throw new ExpedienteCompletoSaveError(id);
+  }
   return mergeExpedienteCompleto(response, completo);
 }
 

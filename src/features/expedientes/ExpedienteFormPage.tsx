@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch, type Resolver } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckboxGroup, FormSection, SelectField, TextAreaField, TextField } from '../../shared/components/FormControls';
@@ -7,14 +7,17 @@ import { Button, Modal } from '../../shared/components/Ui';
 import { env } from '../../shared/config/env';
 import { routes } from '../../shared/config/routes';
 import { useToast } from '../../shared/components/ToastProvider';
+import { getDraftInfo, loadDraft, removeDraft, saveDraft, type DraftInfo } from '../../shared/lib/draftStorage';
+import { useAuth } from '../auth/AuthProvider';
 import { accionesCapacidad, actosCometidos, agentesLesion, areasAnatomicas, capacidades, caracteristicasRiesgo, efectosEconomicos, efectosFisicos, efectosPsicologicos, efectosSexuales, escolaridades, estadosCiviles, modalidadesViolencia, riesgos, siNo, solicitudesTrabajoSocial, tiposViolencia, viviendas } from './expediente.catalogs';
 import { expedienteSchema } from './expediente.schema';
-import { createExpediente, findPossibleDuplicates, getExpediente, updateExpediente } from './expediente.service';
+import { createExpediente, ExpedienteCompletoSaveError, findPossibleDuplicates, getExpediente, updateExpediente } from './expediente.service';
 import type { ExpedienteForm, ExpedienteListItem } from './expediente.types';
 import { defaultExpedienteForm, emptyFamily, emptySupport } from './expediente.mock';
 import { PossibleDuplicateAlert } from './components/PossibleDuplicateAlert';
 
 const steps = ['Identificación', 'Datos personales', 'Domicilio y familia', 'Perfil y salud', 'Persona generadora', 'Hechos y violencia', 'Trabajo social', 'Narración y revisión'];
+type ExpedienteDraft = { values: ExpedienteForm; step: number };
 const fieldLabels: Record<string, string> = {
   calle: 'Calle',
   numeroExterior: 'Número exterior',
@@ -34,25 +37,99 @@ export function ExpedienteFormPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [duplicates, setDuplicates] = useState<ExpedienteListItem[]>([]);
   const [confirmSave, setConfirmSave] = useState(false);
+  const [draftInfo, setDraftInfo] = useState<DraftInfo | null>(null);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState(false);
+  const autosaveTimer = useRef<number | null>(null);
   const form = useForm<ExpedienteForm>({ resolver: zodResolver(expedienteSchema) as unknown as Resolver<ExpedienteForm>, defaultValues: defaultExpedienteForm, mode: 'onBlur' });
   const family = useFieldArray({ control: form.control, name: 'familiares' });
   const supports = useFieldArray({ control: form.control, name: 'redesApoyo' });
   const values = useWatch({ control: form.control });
   const isEditing = Boolean(id);
+  const draftKey = useMemo(() => {
+    const userId = user?.id ?? 'anonimo';
+    return id ? `sgum:draft:expediente:${id}:${userId}` : `sgum:draft:expediente:nuevo:${userId}`;
+  }, [id, user?.id]);
+
+  const writeDraft = useCallback(() => {
+    const ok = saveDraft<ExpedienteDraft>(draftKey, { values: form.getValues(), step });
+    setDraftError(!ok);
+    if (ok) setDraftSavedAt(new Date().toISOString());
+    return ok;
+  }, [draftKey, form, step]);
 
   useEffect(() => {
-    function beforeUnload(event: BeforeUnloadEvent) { if (form.formState.isDirty) { event.preventDefault(); event.returnValue = ''; } }
+    function beforeUnload(event: BeforeUnloadEvent) {
+      if (form.formState.isDirty) {
+        writeDraft();
+        event.preventDefault();
+        event.returnValue = 'Hay información capturada sin guardar. El borrador temporal se conservará en este equipo.';
+      }
+    }
     window.addEventListener('beforeunload', beforeUnload);
     return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [form.formState.isDirty]);
+  }, [form.formState.isDirty, writeDraft]);
+
+  useEffect(() => {
+    const info = getDraftInfo(draftKey);
+    if (info) {
+      setDraftInfo(info);
+      setShowDraftPrompt(true);
+    }
+  }, [draftKey]);
 
   useEffect(() => {
     if (!id) return;
     void getExpediente(id).then((expediente) => form.reset(expediente.detalle)).catch(() => showToast('No fue posible cargar el expediente para edición.', 'error'));
   }, [form, id, showToast]);
+
+  useEffect(() => {
+    if (!form.formState.isDirty || form.formState.isSubmitting) return;
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = window.setTimeout(() => { writeDraft(); }, 2000);
+    return () => {
+      if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    };
+  }, [form.formState.isDirty, form.formState.isSubmitting, values, step, writeDraft]);
+
+  function recoverDraft() {
+    const draft = loadDraft<ExpedienteDraft>(draftKey);
+    if (!draft) {
+      setShowDraftPrompt(false);
+      setDraftInfo(null);
+      showToast('El borrador ya no está disponible.', 'error');
+      return;
+    }
+    form.reset(draft.values);
+    setStep(Math.min(Math.max(draft.step ?? 0, 0), steps.length - 1));
+    setShowDraftPrompt(false);
+    setDraftInfo(null);
+    showToast('Borrador recuperado correctamente.', 'success');
+  }
+
+  function discardDraft() {
+    removeDraft(draftKey);
+    setShowDraftPrompt(false);
+    setDraftInfo(null);
+    setDraftSavedAt(null);
+    setDraftError(false);
+    showToast('Borrador descartado.', 'success');
+  }
+
+  function confirmDiscardDraft() {
+    if (!window.confirm('Se eliminará el borrador guardado en este navegador. ¿Continuar?')) return;
+    discardDraft();
+  }
+
+  function goToStep(nextStep: number) {
+    setStep(nextStep);
+    window.setTimeout(() => { writeDraft(); }, 0);
+  }
 
   async function checkDuplicates() {
     const current = form.getValues();
@@ -73,16 +150,31 @@ export function ExpedienteFormPage() {
 
   async function submit(values: ExpedienteForm) {
     if (!confirmSave) { setConfirmSave(true); return; }
-    const saved = id ? await updateExpediente(id, values) : await createExpediente(values);
-    showToast(env.useMocks ? 'Expediente guardado en modo demostración.' : 'Expediente guardado correctamente.', 'success');
-    navigate(`/expedientes/${saved.id || id}`);
+    try {
+      const saved = id ? await updateExpediente(id, values) : await createExpediente(values);
+      removeDraft(draftKey);
+      showToast(env.useMocks ? 'Expediente guardado en modo demostración.' : 'Expediente guardado correctamente.', 'success');
+      navigate(`/expedientes/${saved.id || id}`);
+    } catch (error) {
+      writeDraft();
+      setConfirmSave(false);
+      if (error instanceof ExpedienteCompletoSaveError) {
+        showToast('La usuaria fue creada, pero ocurrió un error al guardar la información complementaria. El borrador se conserva temporalmente.', 'error');
+        return;
+      }
+      showToast('No se pudo guardar en el servidor. El borrador se conserva temporalmente en este equipo.', 'error');
+    }
   }
+
+  const draftTime = draftSavedAt ? new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit' }).format(new Date(draftSavedAt)) : null;
+  const draftUpdatedAt = draftInfo ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draftInfo.updatedAt)) : '';
 
   return (
     <section className="page form-page">
       <div className="page-header"><div><h1>{isEditing ? 'Edición de usuaria' : 'Registro de nueva usuaria'}</h1><p>Asistente por pasos basado en la cédula institucional. El guardado ocurre al finalizar.</p></div></div>
       {env.useMocks ? <p className="mock-note">Modo demostración: todos los datos capturados permanecen solo en memoria de esta sesión del navegador.</p> : null}
-      <div className="stepper" aria-label="Progreso del formulario">{steps.map((label, index) => <button type="button" key={label} className={index === step ? 'active' : ''} onClick={() => setStep(index)}>{index + 1}. {label}</button>)}</div>
+      <div className="draft-status"><span>{draftError ? 'No fue posible guardar borrador local.' : draftTime ? `Borrador guardado automáticamente a las ${draftTime}` : 'El borrador se guardará automáticamente al capturar información.'}</span><Button type="button" variant="outline" onClick={confirmDiscardDraft}>Descartar borrador</Button></div>
+      <div className="stepper" aria-label="Progreso del formulario">{steps.map((label, index) => <button type="button" key={label} className={index === step ? 'active' : ''} onClick={() => goToStep(index)}>{index + 1}. {label}</button>)}</div>
       <PossibleDuplicateAlert duplicates={duplicates} />
       <form onSubmit={form.handleSubmit(submit)} noValidate autoComplete="off">
         {step === 0 ? <FormSection title="Identificación de la atención" description="Captura los datos administrativos disponibles sin hacer obligatorios folio o expediente.">
@@ -157,16 +249,17 @@ export function ExpedienteFormPage() {
           <TextAreaField label="Motivo de atención" {...form.register('motivoAtencion')} error={form.formState.errors.motivoAtencion} /><SelectField label="Recibió información" {...form.register('recibioInformacion')}>{siNo.map((item) => <option key={item}>{item}</option>)}</SelectField>{values.recibioInformacion === 'Sí' ? <TextField label="Materia" {...form.register('materiaInformacion')} /> : null}<Controller control={form.control} name="solicitudes" render={({ field }) => <CheckboxGroup legend="Solicita" options={solicitudesTrabajoSocial} value={field.value} onChange={field.onChange} error={form.formState.errors.solicitudes?.message} />} />
         </FormSection> : null}
 
-        {step === 7 ? <FormSection title="Narración y revisión" description="La narración no se muestra en tablas ni se guarda en almacenamiento local.">
+        {step === 7 ? <FormSection title="Narración y revisión" description="La narración no se muestra en tablas. El borrador local expira automáticamente en 24 horas.">
           <TextAreaField label="Narración de hechos" rows={8} {...form.register('narracion')} error={form.formState.errors.narracion} /><TextField label="Persona que atiende" {...form.register('personaAtiende')} error={form.formState.errors.personaAtiende} /><TextAreaField label="Observaciones autorizadas" {...form.register('observacionesAutorizadas')} />
           <label className="check-option field-wide"><input type="checkbox" {...form.register('firmaFisica')} /> <span>Firma o huella conservada únicamente en expediente físico.</span></label>
           <label className="check-option field-wide"><input type="checkbox" {...form.register('confirmacionRevision')} /> <span>Confirmo que la información fue revisada antes de guardar.</span></label>
           {form.formState.errors.confirmacionRevision ? <p className="error-text">{form.formState.errors.confirmacionRevision.message}</p> : null}
-          <div className="review-box field-wide"><h3>Resumen</h3><p>Usuaria: {values.nombres || 'Pendiente'} {values.apellidoPaterno || ''}</p><p>Expediente: {values.numeroExpediente || 'Se asignará según backend'}</p><p>Tipos de violencia seleccionados: {values.tiposViolencia?.length ?? 0}</p><p>Campos pendientes se indican junto a cada campo al intentar guardar.</p><p className="confidentiality">Este sistema contiene información confidencial. Su consulta y uso están restringidos al personal autorizado de la Instancia Municipal para el Desarrollo de la Mujer.</p></div>
+          <div className="review-box field-wide"><h3>Resumen</h3><p>Usuaria: {values.nombres || 'Pendiente'} {values.apellidoPaterno || ''}</p><p>Expediente: {values.numeroExpediente || 'Se asignará según backend'}</p><p>Tipos de violencia seleccionados: {values.tiposViolencia?.length ?? 0}</p><p>Campos pendientes se indican junto a cada campo al intentar guardar.</p><p className="confidentiality">Este sistema contiene información confidencial. Su consulta y uso están restringidos al personal autorizado de la Instancia Municipal para el Desarrollo de la Mujer.</p><p className="confidentiality">El borrador se guarda temporalmente en este navegador para evitar pérdida de captura. Elimine el borrador si utiliza un equipo compartido.</p></div>
         </FormSection> : null}
 
-        <div className="form-actions"><Button type="button" className="button-ghost" onClick={() => form.formState.isDirty && !window.confirm('Hay cambios sin guardar. ¿Deseas cancelar?') ? undefined : navigate(routes.expedientes)}>Cancelar</Button><Button type="button" className="button-secondary" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))}>Anterior</Button>{step < steps.length - 1 ? <Button type="button" onClick={() => setStep((current) => Math.min(steps.length - 1, current + 1))}>Continuar</Button> : <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Guardando...' : 'Guardar'}</Button>}</div>
+        <div className="form-actions"><Button type="button" className="button-ghost" onClick={() => form.formState.isDirty && !window.confirm('Hay cambios sin guardar. El borrador temporal se conservará en este equipo. ¿Deseas cancelar?') ? undefined : navigate(routes.expedientes)}>Cancelar</Button><Button type="button" className="button-secondary" disabled={step === 0} onClick={() => goToStep(Math.max(0, step - 1))}>Anterior</Button>{step < steps.length - 1 ? <Button type="button" onClick={() => goToStep(Math.min(steps.length - 1, step + 1))}>Continuar</Button> : <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Guardando...' : 'Guardar'}</Button>}</div>
       </form>
+      {showDraftPrompt ? <Modal title="Borrador encontrado" onClose={() => setShowDraftPrompt(false)}><p>Se encontró un borrador sin guardar del expediente. Última actualización: {draftUpdatedAt}. ¿Deseas recuperarlo?</p><div className="form-actions"><Button type="button" variant="outline" onClick={discardDraft}>Descartar borrador</Button><Button type="button" onClick={recoverDraft}>Recuperar borrador</Button></div></Modal> : null}
       {confirmSave ? <Modal title="Confirmar guardado" onClose={() => setConfirmSave(false)}><p>Se guardará el expediente con información confidencial. Verifica que la captura fue revisada y autorizada.</p><div className="form-actions"><Button type="button" className="button-ghost" onClick={() => setConfirmSave(false)}>Volver a revisar</Button><Button type="button" onClick={() => void form.handleSubmit(submit)()}>Confirmar y guardar</Button></div></Modal> : null}
     </section>
   );
